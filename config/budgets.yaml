@@ -1,0 +1,57 @@
+# Per-run budget caps and approval thresholds.
+# These are hard stops, not suggestions. API callers may lower them, never raise
+# them above the server-side maximum.
+
+version: 1
+
+defaults:
+  max_steps: 40
+  max_tool_calls: 25
+  max_concurrent_tool_calls: 3
+  max_total_tokens: 100000
+  max_input_tokens: 80000
+  max_output_tokens: 20000
+  # Billed cost cap. Free tiers are $0; shadow pricing is reported separately
+  # and is NOT enforced against this cap.
+  max_cost_usd: 0.0
+  max_wall_clock_seconds: 600
+  max_research_loops: 2
+  max_revision_loops: 2
+  max_plan_items: 6
+  max_sources: 12
+  max_claims: 40
+  max_queries_per_subquestion: 3
+  max_evidence_chunks_per_subquestion: 5
+
+architectures:
+  single_agent:
+    max_steps: 30
+    max_tool_calls: 20
+    max_total_tokens: 70000
+  multi_agent:
+    max_steps: 40
+    max_tool_calls: 25
+    max_total_tokens: 100000
+
+approvals:
+  expensive_search:
+    enabled: true
+    # Require approval when a single search/fetch batch is projected above this.
+    projected_tokens_threshold: 20000
+  memory_write:
+    enabled: true
+  export:
+    enabled: true
+  low_confidence_claim:
+    # Do not block every weak claim; block export if too many remain.
+    enabled: true
+    max_insufficient_claim_ratio: 0.20
+  ttl_seconds: 86400
+
+shadow_pricing:
+  # Clearly labeled comparison only. These are NOT billed amounts.
+  # Leave at 0 for free tiers; set reference prices if you want a "what would
+  # this cost on a paid API" column in EVALUATION.md.
+  input_usd_per_mtok: 0.0
+  output_usd_per_mtok: 0.0
+  note: "Shadow price for comparability only; free-tier billed cost is $0."
