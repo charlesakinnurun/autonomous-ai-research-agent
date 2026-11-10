@@ -8,7 +8,7 @@ Verified against the pinned versions in `uv.lock` on 2026-11-08. "Verified" mean
 |---|---|---|
 | `langgraph` | 1.2.20 | Verified: TypedDict graph, `interrupt`, `Command(resume=...)`, `MemorySaver` |
 | `langgraph-checkpoint-postgres` | 3.2.0 | Verified: `AsyncPostgresSaver.from_conn_string` + `await saver.setup()` |
-| `dspy` | 3.4.1 | Imports/signatures verified; live provider call not run |
+| `dspy` | 3.4.1 | Imports/signatures verifieind; live provider call not run |
 | `fastapi` | 0.162.2 | Verified via contract tests |
 | `pydantic` | 2.14.3 | Verified via model tests |
 | `sqlalchemy` | 2.1.8 | Verified via repository tests |
