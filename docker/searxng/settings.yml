@@ -1,0 +1,29 @@
+# SearXNG configuration for local development.
+# Docs: https://docs.searxng.org/admin/settings/
+use_default_settings: true
+
+general:
+  instance_name: "research-agent"
+  debug: false
+
+server:
+  # Local-only instance. Replace via SEARXNG_SECRET in a real deployment.
+  secret_key: "change-me-local-only"
+  limiter: false
+  image_proxy: false
+  method: "GET"
+
+search:
+  safe_search: 0
+  autocomplete: ""
+  default_lang: "en"
+  # JSON is required by the application's search adapter.
+  formats:
+    - html
+    - json
+
+ui:
+  static_use_hash: true
+
+# Keep the default engine set for Phase 0. The search adapter will use a
+# configurable engine allowlist and will respect each engine's terms.
