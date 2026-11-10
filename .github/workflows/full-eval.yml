@@ -1,0 +1,112 @@
+name: Full evaluation (manual, live APIs)
+
+# Phase 5 enables the real matrix. Until the harness exists, this workflow exits
+# with a notice instead of pretending to run an eval.
+#
+# Required repository secrets:
+#   GROQ_API_KEY, GEMINI_API_KEY
+# Uses free tiers only. Review docs/QUOTA_PLAN.md before running.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dataset_version:
+        description: "Dataset version (e.g. v1)"
+        required: true
+        default: "v1"
+      confirm_live_calls:
+        description: "Type YES to confirm live API calls will consume quota"
+        required: true
+        default: "NO"
+      max_tokens:
+        description: "Hard token cap for this run"
+        required: true
+        default: "8000000"
+
+permissions:
+  contents: read
+
+jobs:
+  full-eval:
+    name: Full benchmark
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    env:
+      LLM_MODE: live
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      DATABASE_URL: postgresql+psycopg://research:research@localhost:5432/research
+      MAX_TOKENS: ${{ github.event.inputs.max_tokens }}
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: research
+          POSTGRES_PASSWORD: research
+          POSTGRES_DB: research
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U research -d research"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - name: Refuse accidental spend
+        if: github.event.inputs.confirm_live_calls != 'YES'
+        run: |
+          echo "::error::Set confirm_live_calls to YES to run the live benchmark."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.13.6"
+          enable-cache: true
+
+      - name: Install Python
+        run: uv python install 3.12
+
+      - name: Sync dependencies
+        run: uv sync --frozen --all-groups
+
+      - name: Check harness availability
+        id: harness
+        run: |
+          if [ ! -f evals/run_benchmark.py ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Benchmark harness is not implemented yet (Phase 5)."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run migrations
+        if: steps.harness.outputs.ready == 'true'
+        run: uv run alembic upgrade head
+
+      - name: Run benchmark
+        if: steps.harness.outputs.ready == 'true'
+        run: |
+          uv run python -m evals.run_benchmark \
+            --dataset-version "${{ github.event.inputs.dataset_version }}" \
+            --max-tokens "$MAX_TOKENS"
+
+      - name: Generate EVALUATION.md
+        if: steps.harness.outputs.ready == 'true'
+        run: uv run python -m evals.generate_report
+
+      - name: Upload evaluation artifacts
+        if: steps.harness.outputs.ready == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluation
+          path: |
+            EVALUATION.md
+            evals/results/
+            artifacts/plots/
