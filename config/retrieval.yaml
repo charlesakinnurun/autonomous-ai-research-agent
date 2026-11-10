@@ -1,0 +1,66 @@
+# Retrieval, fetch, chunking, and embedding configuration.
+# Tune these only against the dev split; never against the frozen test split.
+
+version: 1
+
+search:
+  primary: searxng
+  searxng:
+    base_url_env: SEARXNG_BASE_URL
+    max_results_per_query: 8
+    language: en
+    safe_search: 0
+    # Empty list = use SearXNG defaults. Keep an allowlist in production.
+    # Review each engine's terms of service; prefer APIs with explicit licenses
+    # (Wikipedia, arXiv) and respect robots.txt for arbitrary page fetches.
+    engines: []
+  fallbacks: [wikipedia, arxiv]
+  max_queries_per_subquestion: 3
+  timeout_seconds: 10
+  max_retries: 2
+
+wikipedia:
+  base_url: https://en.wikipedia.org/w/api.php
+  max_results: 3
+
+arxiv:
+  base_url: https://export.arxiv.org/api/query
+  max_results: 3
+
+fetch:
+  timeout_seconds: 15
+  max_redirects: 5
+  max_bytes: 3000000
+  allowed_content_types:
+    - text/html
+    - application/xhtml+xml
+    - text/plain
+    - application/pdf
+  user_agent_env: SEARCH_USER_AGENT
+  respect_robots_txt: true
+  deny_private_ips: true
+  # Empty allowlist = allow any public domain that passes safety checks.
+  domain_allowlist: []
+  domain_denylist: []
+  per_domain_rate_limit_per_minute: 6
+
+chunking:
+  target_tokens: 450
+  max_tokens: 600
+  overlap_tokens: 80
+  min_chars: 200
+
+retrieval:
+  top_k: 8
+  candidate_k: 40
+  hybrid: true
+  vector_weight: 0.65
+  keyword_weight: 0.35
+  mmr_lambda: 0.7
+  dedupe_similarity_threshold: 0.95
+
+embedding:
+  model: BAAI/bge-small-en-v1.5
+  dim: 384
+  batch_size: 32
+  normalize: true
