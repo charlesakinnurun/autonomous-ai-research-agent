@@ -1,0 +1,183 @@
+# Provider configuration template.
+#
+# Copy to config/providers.yaml (gitignored) and fill in verified limits.
+# NEVER hardcode limits in Python. Free-tier limits change without notice.
+#
+# `limits` semantics:
+#   rpm/rpd/tpm/tpd > 0 : enforce the limit
+#   0                  : unlimited (only valid for local Ollama)
+#   tpd                : tokens per day across input + output
+#   tpm                : tokens per minute across input + output
+#
+# Verify every value in the provider console before a collection run.
+# Record the verification date and model ID in the `verified` field.
+
+version: 1
+verified_at: null
+
+routing:
+  # Ordered fallback chain. Capability + quota + health filters run first.
+  fallback_order: [groq, gemini, ollama]
+  max_retries: 2
+  retry_base_seconds: 1.0
+  retry_max_seconds: 30.0
+  request_timeout_seconds: 90
+  # Role -> preferred provider order. Roles keep model choice out of node code.
+  roles:
+    planner: [gemini, groq, ollama]
+    writer: [gemini, groq, ollama]
+    verifier: [groq, gemini, ollama]
+    extractor: [groq, gemini, ollama]
+    critic: [gemini, groq, ollama]
+    judge: [gemini, groq, ollama] # use the opposite family from the generator where possible
+  # Use Ollama for interactive runs when API providers are exhausted.
+  allow_local_fallback_for_interactive: true
+  allow_local_fallback_for_benchmark: false
+
+providers:
+  groq:
+    enabled: true
+    kind: openai_compatible
+    base_url: https://api.groq.com/openai/v1
+    api_key_env: GROQ_API_KEY
+    priority: 10
+    verified: null
+    models:
+      default: llama-3.3-70b-versatile
+      fast: llama-3.1-8b-instant
+    capabilities:
+      json_mode: true
+      tools: true
+      streaming: true
+      context_window: 131072
+    limits:
+      # PLACEHOLDERS — VERIFY IN CONSOLE. Do not treat as fact.
+      rpm: 20
+      rpd: 500
+      tpm: 6000
+      tpd: 400000
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
+
+  gemini:
+    enabled: true
+    kind: openai_compatible
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key_env: GEMINI_API_KEY
+    priority: 20
+    verified: null
+    models:
+      default: gemini-2.0-flash
+      fast: gemini-2.0-flash-lite
+    capabilities:
+      json_mode: true
+      tools: true
+      streaming: true
+      context_window: 1000000
+    limits:
+      # PLACEHOLDERS — VERIFY IN CONSOLE.
+      rpm: 10
+      rpd: 250
+      tpm: 250000
+      tpd: 1000000
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
+
+  openrouter:
+    enabled: false
+    kind: openai_compatible
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_API_KEY
+    priority: 30
+    verified: null
+    models:
+      default: "meta-llama/llama-3.3-70b-instruct:free"
+      fast: "meta-llama/llama-3.1-8b-instruct:free"
+    capabilities:
+      json_mode: false
+      tools: true
+      streaming: true
+      context_window: 131072
+    limits:
+      rpm: 10
+      rpd: 50
+      tpm: 20000
+      tpd: 200000
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
+
+  cerebras:
+    enabled: false
+    kind: openai_compatible
+    base_url: https://api.cerebras.ai/v1
+    api_key_env: CEREBRAS_API_KEY
+    priority: 40
+    verified: null
+    models:
+      default: llama-3.3-70b
+      fast: llama-3.1-8b
+    capabilities:
+      json_mode: true
+      tools: true
+      streaming: true
+      context_window: 131072
+    limits:
+      rpm: 10
+      rpd: 100
+      tpm: 60000
+      tpd: 500000
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
+
+  mistral:
+    enabled: false
+    kind: openai_compatible
+    base_url: https://api.mistral.ai/v1
+    api_key_env: MISTRAL_API_KEY
+    priority: 50
+    verified: null
+    models:
+      default: mistral-small-latest
+      fast: mistral-small-latest
+    capabilities:
+      json_mode: true
+      tools: true
+      streaming: true
+      context_window: 128000
+    limits:
+      rpm: 10
+      rpd: 100
+      tpm: 20000
+      tpd: 200000
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
+
+  ollama:
+    enabled: true
+    kind: openai_compatible
+    base_url: http://localhost:11434/v1
+    api_key_env: OLLAMA_API_KEY
+    priority: 100
+    verified: "local"
+    models:
+      default: qwen2.5:7b-instruct
+      fast: qwen2.5:3b-instruct
+    capabilities:
+      json_mode: true
+      tools: false
+      streaming: true
+      context_window: 32768
+    limits:
+      # 0 = unlimited (local).
+      rpm: 0
+      rpd: 0
+      tpm: 0
+      tpd: 0
+    pricing:
+      input_usd_per_mtok: 0.0
+      output_usd_per_mtok: 0.0
